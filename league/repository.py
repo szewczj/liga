@@ -1,10 +1,41 @@
 """SQLite repository: persistence details for leagues, teams and matches."""
 
 import sqlite3
+import os
+import shutil
+import sys
 from pathlib import Path
 
 
-DATABASE_PATH = Path(__file__).resolve().parent.parent / "league_db.db"
+def _database_path(
+    frozen=None, executable=None, bundle_dir=None, legacy_database=None
+):
+    if frozen is None:
+        frozen = getattr(sys, "frozen", False)
+    if frozen:
+        executable = Path(executable or sys.executable).resolve()
+        path = executable.parent / "league_db.db"
+        if path.exists():
+            return path
+
+        if legacy_database is None:
+            local_data = Path(
+                os.environ.get("LOCALAPPDATA", Path.home())
+            ) / "LigaPil" / "league_db.db"
+            legacy_database = local_data
+        bundled_dir = bundle_dir or getattr(sys, "_MEIPASS", None)
+        candidates = [Path(legacy_database)]
+        if bundled_dir:
+            candidates.append(Path(bundled_dir) / "league_db.db")
+        for candidate in candidates:
+            if candidate.is_file():
+                shutil.copy2(str(candidate), str(path))
+                break
+        return path
+    return Path(__file__).resolve().parent.parent / "league_db.db"
+
+
+DATABASE_PATH = _database_path()
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS app_leagues (
@@ -43,7 +74,9 @@ ORDER BY m.round_number, m.id
 """
 
 
-def connect_database(path=DATABASE_PATH):
+def connect_database(path=None):
+    if path is None:
+        path = _database_path()
     connection = sqlite3.connect(str(path))
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
