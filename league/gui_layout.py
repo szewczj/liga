@@ -24,6 +24,10 @@ class LeagueLayoutMixin:
         self.refresh_button.pack(side="left", padx=8)
         self.export_button = ttk.Button(header, command=self.export_selected_league)
         self.export_button.pack(side="left")
+        self.manage_button = ttk.Button(
+            header, command=self.open_league_management
+        )
+        self.manage_button.pack(side="left", padx=(8, 0))
         self.language_button = ttk.Button(header, command=self.show_language_options)
         self.language_button.pack(side="right")
 

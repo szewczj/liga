@@ -87,6 +87,7 @@ class ConsoleLeagueApp:
             print("2. Terminarz i wyniki kolejek")
             print("3. Wprowadź lub popraw wynik")
             print("4. Eksportuj ligę do Excela")
+            print("5. Zarządzaj ligą")
             print("0. Powrót")
             choice = input("Wybierz opcję: ").strip()
             if choice == "1":
@@ -97,6 +98,11 @@ class ConsoleLeagueApp:
                 self.enter_result(league["id"])
             elif choice == "4":
                 self.export_league(league["id"])
+            elif choice == "5":
+                deleted = self.manage_league(league)
+                if deleted:
+                    return
+                league = self.service.get_league(league["id"])
             elif choice == "0":
                 return
             else:
@@ -193,6 +199,55 @@ class ConsoleLeagueApp:
             print("Nie udało się wyeksportować ligi: {}".format(error))
         else:
             print("Wyeksportowano ligę do pliku: {}".format(exported))
+
+    def manage_league(self, league):
+        while True:
+            print("\nZarządzanie ligą: {}".format(league["name"]))
+            print("1. Zmień nazwę ligi")
+            print("2. Sklonuj ligę")
+            print("3. Usuń ligę")
+            print("0. Powrót")
+            choice = input("Wybierz opcję: ").strip()
+            if choice == "1":
+                name = input("Podaj nową nazwę ligi: ")
+                try:
+                    self.service.rename_league(league["id"], name)
+                except ValueError as error:
+                    print(error)
+                else:
+                    league = self.service.get_league(league["id"])
+                    print("Nazwa ligi została zmieniona.")
+            elif choice == "2":
+                name = input(
+                    "Podaj nazwę kopii ligi [{} (kopia)]: ".format(league["name"])
+                ).strip()
+                if not name:
+                    name = league["name"] + " (kopia)"
+                try:
+                    self.service.clone_league(league["id"], name)
+                except ValueError as error:
+                    print(error)
+                else:
+                    print("Liga została sklonowana jako „{}”.".format(name))
+            elif choice == "3":
+                confirmation = input(
+                    "Czy na pewno usunąć ligę „{}” wraz ze wszystkimi meczami "
+                    "i wynikami? (wpisz TAK): ".format(league["name"])
+                ).strip()
+                if confirmation != "TAK":
+                    print("Anulowano usuwanie ligi.")
+                    continue
+                try:
+                    self.service.delete_league(league["id"])
+                except ValueError as error:
+                    print(error)
+                    continue
+                print("Liga została usunięta.")
+                return True
+            elif choice == "0":
+                return False
+            else:
+                print("Nieznana opcja.")
 
 
 def main():

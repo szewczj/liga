@@ -36,6 +36,7 @@ class LeagueApp(
         self.round_mode = tk.StringVar(value="single")
         self.round_input_var = tk.StringVar(value="1")
         self.language_popup = None
+        self.management_window = None
 
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         self.create_flag_images()
@@ -56,9 +57,11 @@ class LeagueApp(
         )
         if selected_index is None:
             self.league_var.set("")
+            self.manage_button.configure(state="disabled")
             self.clear_views()
         else:
             self.league_box.current(selected_index)
+            self.manage_button.configure(state="normal")
             self.refresh_views()
 
     def selected_league(self):

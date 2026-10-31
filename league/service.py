@@ -36,6 +36,19 @@ class LeagueService:
     def get_league(self, league_id):
         return self.repository.get_league(league_id)
 
+    def rename_league(self, league_id, name):
+        if not name or not name.strip():
+            raise ValueError("Nazwa ligi nie może być pusta.")
+        self.repository.rename_league(league_id, name.strip())
+
+    def delete_league(self, league_id):
+        self.repository.delete_league(league_id)
+
+    def clone_league(self, league_id, new_name):
+        if not new_name or not new_name.strip():
+            raise ValueError("Nazwa ligi nie może być pusta.")
+        return self.repository.clone_league(league_id, new_name.strip())
+
     def get_teams(self, league_id):
         return self.repository.get_teams(league_id)
 

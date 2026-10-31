@@ -135,6 +135,76 @@ class SQLiteLeagueRepository:
             "SELECT id, name FROM app_leagues WHERE id = ?", (league_id,)
         ).fetchone()
 
+    def rename_league(self, league_id, name):
+        try:
+            with self.connection:
+                cursor = self.connection.execute(
+                    "UPDATE app_leagues SET name = ? WHERE id = ?",
+                    (name, league_id),
+                )
+                if cursor.rowcount != 1:
+                    raise ValueError("Nie znaleziono ligi.")
+        except sqlite3.IntegrityError as error:
+            if "app_leagues.name" in str(error):
+                raise ValueError("Liga o takiej nazwie już istnieje.") from error
+            raise
+
+    def delete_league(self, league_id):
+        with self.connection:
+            if self.get_league(league_id) is None:
+                raise ValueError("Nie znaleziono ligi.")
+            self.connection.execute(
+                "DELETE FROM app_matches WHERE league_id = ?", (league_id,)
+            )
+            self.connection.execute(
+                "DELETE FROM app_teams WHERE league_id = ?", (league_id,)
+            )
+            self.connection.execute(
+                "DELETE FROM app_leagues WHERE id = ?", (league_id,)
+            )
+
+    def clone_league(self, league_id, new_name):
+        source = self.get_league(league_id)
+        if source is None:
+            raise ValueError("Nie znaleziono ligi.")
+        teams = self.get_teams(league_id)
+        matches = self.get_matches(league_id)
+        try:
+            with self.connection:
+                cursor = self.connection.execute(
+                    "INSERT INTO app_leagues (name) VALUES (?)", (new_name,)
+                )
+                clone_id = cursor.lastrowid
+                team_ids = {}
+                for team in teams:
+                    cursor = self.connection.execute(
+                        "INSERT INTO app_teams (league_id, name) VALUES (?, ?)",
+                        (clone_id, team["name"]),
+                    )
+                    team_ids[team["id"]] = cursor.lastrowid
+                for match in matches:
+                    self.connection.execute(
+                        """
+                        INSERT INTO app_matches
+                            (league_id, round_number, home_team_id, away_team_id,
+                             home_score, away_score)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            clone_id,
+                            match["round_number"],
+                            team_ids[match["home_team_id"]],
+                            team_ids[match["away_team_id"]],
+                            match["home_score"],
+                            match["away_score"],
+                        ),
+                    )
+            return clone_id
+        except sqlite3.IntegrityError as error:
+            if "app_leagues.name" in str(error):
+                raise ValueError("Liga o takiej nazwie już istnieje.") from error
+            raise
+
     def get_teams(self, league_id):
         return self.connection.execute(
             "SELECT id, name FROM app_teams WHERE league_id = ? ORDER BY id",

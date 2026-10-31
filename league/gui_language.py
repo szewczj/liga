@@ -39,6 +39,7 @@ class LanguageMixin:
         self.create_league_button.configure(text=self.t("create_league"))
         self.refresh_button.configure(text=self.t("refresh"))
         self.export_button.configure(text=self.t("export_excel"))
+        self.manage_button.configure(text=self.t("manage_league"))
         self.standings_panel.configure(text=self.t("standings"))
         self.fixtures_panel.configure(text=self.t("fixtures"))
         for column, key in (
@@ -55,6 +56,12 @@ class LanguageMixin:
         self.previous_round_button.configure(text=self.t("previous"))
         self.next_round_button.configure(text=self.t("next"))
         self.show_round_button.configure(text=self.t("show"))
+        if self.management_window is not None and self.management_window.winfo_exists():
+            self.management_window.title(self.t("manage_title"))
+            self.rename_button.configure(text=self.t("rename_league"))
+            self.clone_button.configure(text=self.t("clone_league"))
+            self.delete_button.configure(text=self.t("delete_league"))
+            self.close_management_button.configure(text=self.t("close"))
         self.language_button.configure(
             text="polski ▼" if self.language == "pl" else "english ▼",
             image=self.polish_flag if self.language == "pl" else self.uk_flag,
@@ -125,6 +132,7 @@ class LanguageMixin:
             "Liga musi mieć co najmniej dwie drużyny.": "error_min_teams",
             "Nazwy drużyn w lidze muszą być unikalne.": "error_duplicate_team",
             "Liga o takiej nazwie już istnieje.": "error_duplicate_league",
+            "Nie znaleziono ligi.": "league_not_found",
         }
         key = translations.get(str(error))
         return self.t(key) if key else str(error)
