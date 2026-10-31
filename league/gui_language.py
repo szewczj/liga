@@ -40,6 +40,7 @@ class LanguageMixin:
         self.refresh_button.configure(text=self.t("refresh"))
         self.export_button.configure(text=self.t("export_excel"))
         self.manage_button.configure(text=self.t("manage_league"))
+        self.rename_team_button.configure(text=self.t("rename_team"))
         self.standings_panel.configure(text=self.t("standings"))
         self.fixtures_panel.configure(text=self.t("fixtures"))
         for column, key in (
@@ -49,6 +50,7 @@ class LanguageMixin:
             ("points", "points"),
             ("gf", "goals_for"),
             ("ga", "goals_against"),
+            ("gd", "goal_difference"),
         ):
             self.standings_tree.heading(column, text=self.t(key))
         self.all_rounds_button.configure(text=self.t("all_rounds"))
@@ -133,6 +135,9 @@ class LanguageMixin:
             "Nazwy drużyn w lidze muszą być unikalne.": "error_duplicate_team",
             "Liga o takiej nazwie już istnieje.": "error_duplicate_league",
             "Nie znaleziono ligi.": "league_not_found",
+            "Nazwa drużyny nie może być pusta.": "empty_team",
+            "Nie znaleziono drużyny w tej lidze.": "team_not_found",
+            "Drużyna o takiej nazwie już istnieje w tej lidze.": "duplicate_team_name",
         }
         key = translations.get(str(error))
         return self.t(key) if key else str(error)

@@ -52,6 +52,11 @@ class LeagueService:
     def get_teams(self, league_id):
         return self.repository.get_teams(league_id)
 
+    def rename_team(self, league_id, team_id, name):
+        if not name or not name.strip():
+            raise ValueError("Nazwa drużyny nie może być pusta.")
+        self.repository.rename_team(league_id, team_id, name.strip())
+
     def get_rounds(self, league_id):
         return self.repository.get_matches(league_id)
 
@@ -65,6 +70,7 @@ class LeagueService:
                 "points": 0,
                 "goals_for": 0,
                 "goals_against": 0,
+                "goal_difference": 0,
             }
             for team in teams
         }
@@ -80,6 +86,8 @@ class LeagueService:
             home["goals_against"] += away_score
             away["goals_for"] += away_score
             away["goals_against"] += home_score
+            home["goal_difference"] += home_score - away_score
+            away["goal_difference"] += away_score - home_score
             if home_score > away_score:
                 home["points"] += 3
             elif home_score < away_score:
@@ -91,7 +99,7 @@ class LeagueService:
             standings.values(),
             key=lambda team: (
                 -team["points"],
-                -(team["goals_for"] - team["goals_against"]),
+                -team["goal_difference"],
                 -team["goals_for"],
                 team["name"].casefold(),
             ),

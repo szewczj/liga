@@ -56,6 +56,45 @@ class ScheduleTests(unittest.TestCase):
                 self.assertEqual(sorted(team["points"] for team in standings), [0, 0, 3])
                 self.assertEqual(sum(team["goals_for"] for team in standings), 3)
                 self.assertEqual(sum(team["goals_against"] for team in standings), 3)
+                self.assertEqual(
+                    sum(team["goal_difference"] for team in standings), 0
+                )
+            finally:
+                connection.close()
+
+    def test_rename_team_updates_fixtures_and_rejects_duplicate_or_empty_name(self):
+        with tempfile.TemporaryDirectory() as directory:
+            connection = connect_database(Path(directory) / "league.db")
+            try:
+                service = LeagueService(SQLiteLeagueRepository(connection))
+                league_id = service.create_league(
+                    "Testowa liga", ["Orły", "Lisy", "Wilki"]
+                )
+                team = service.get_teams(league_id)[0]
+                service.rename_team(league_id, team["id"], "Jastrzębie")
+                self.assertEqual(
+                    {match["home_name"] for match in service.get_rounds(league_id)}
+                    | {match["away_name"] for match in service.get_rounds(league_id)},
+                    {"Jastrzębie", "Lisy", "Wilki"},
+                )
+                match = service.get_rounds(league_id)[0]
+                service.record_result(match["id"], 2, 0)
+                standings = {
+                    row["team_id"]: row for row in service.get_standings(league_id)
+                }
+                self.assertEqual(
+                    standings[match["home_team_id"]]["goal_difference"], 2
+                )
+                self.assertEqual(
+                    standings[match["away_team_id"]]["goal_difference"], -2
+                )
+                with self.assertRaises(ValueError):
+                    service.rename_team(league_id, team["id"], "Lisy")
+                with self.assertRaises(ValueError):
+                    service.rename_team(league_id, team["id"], "   ")
+                self.assertEqual(
+                    service.get_teams(league_id)[0]["name"], "Jastrzębie"
+                )
             finally:
                 connection.close()
 

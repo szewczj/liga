@@ -43,7 +43,7 @@ class LeagueLayoutMixin:
     def _build_standings(self, parent):
         self.standings_tree = ttk.Treeview(
             parent,
-            columns=("position", "team", "played", "points", "gf", "ga"),
+            columns=("position", "team", "played", "points", "gf", "ga", "gd"),
             show="headings",
         )
         columns = (
@@ -53,10 +53,16 @@ class LeagueLayoutMixin:
             ("points", 45, "center"),
             ("gf", 40, "center"),
             ("ga", 40, "center"),
+            ("gd", 45, "center"),
         )
         for column, width, anchor in columns:
             self.standings_tree.column(column, width=width, anchor=anchor)
+        self.standings_tree.bind("<Double-1>", self.on_standings_double_click)
         self.standings_tree.pack(fill="both", expand=True)
+        self.rename_team_button = ttk.Button(
+            parent, command=self.rename_selected_team
+        )
+        self.rename_team_button.pack(anchor="w", pady=(8, 0))
 
     def _build_fixtures(self, parent):
         controls = ttk.Frame(parent)

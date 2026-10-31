@@ -37,6 +37,7 @@ class LeagueApp(
         self.round_input_var = tk.StringVar(value="1")
         self.language_popup = None
         self.management_window = None
+        self.team_name_editor = None
 
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         self.create_flag_images()
@@ -74,6 +75,7 @@ class LeagueApp(
         self.refresh_views()
 
     def clear_views(self):
+        self.cancel_team_name_edit()
         self.standings_tree.delete(*self.standings_tree.get_children())
         for child in self.rounds_frame.winfo_children():
             child.destroy()
@@ -220,6 +222,7 @@ class LeagueApp(
             self.standings_tree.insert(
                 "",
                 "end",
+                iid=str(team["team_id"]),
                 values=(
                     position,
                     team["name"],
@@ -227,8 +230,73 @@ class LeagueApp(
                     team["points"],
                     team["goals_for"],
                     team["goals_against"],
+                    team["goal_difference"],
                 ),
             )
+
+    def on_standings_double_click(self, event):
+        if self.standings_tree.identify_region(event.x, event.y) != "cell":
+            return
+        if self.standings_tree.identify_column(event.x) == "#2":
+            team_id = self.standings_tree.identify_row(event.y)
+            if team_id:
+                self.start_team_name_edit(team_id)
+
+    def rename_selected_team(self):
+        selection = self.standings_tree.selection()
+        if selection:
+            self.start_team_name_edit(selection[0])
+
+    def start_team_name_edit(self, team_id):
+        self.cancel_team_name_edit()
+        league = self.selected_league()
+        if league is None:
+            return
+        item = self.standings_tree.item(team_id)
+        if not item["values"]:
+            return
+        bounds = self.standings_tree.bbox(team_id, "team")
+        if not bounds:
+            return
+        x, y, width, height = bounds
+        editor = ttk.Entry(self.standings_tree)
+        editor.insert(0, item["values"][1])
+        editor.select_range(0, "end")
+        editor.place(x=x, y=y, width=width, height=height)
+        self.team_name_editor = (team_id, league["id"], editor)
+        editor.bind("<Return>", self.commit_team_name_edit)
+        editor.bind("<Escape>", self.cancel_team_name_edit)
+        editor.bind("<FocusOut>", self.commit_team_name_edit)
+        editor.focus_set()
+
+    def commit_team_name_edit(self, _event=None):
+        if self.team_name_editor is None:
+            return "break"
+        team_id, league_id, editor = self.team_name_editor
+        name = editor.get()
+        try:
+            self.service.rename_team(league_id, int(team_id), name)
+        except ValueError as error:
+            messagebox.showerror(
+                self.t("rename_team"), self.translate_core_error(error)
+            )
+            editor.after_idle(editor.focus_set)
+            return "break"
+        pending_scores = {
+            match_id: (home.get(), away.get())
+            for match_id, (home, away) in self.score_entries.items()
+        }
+        self.team_name_editor = None
+        editor.destroy()
+        self.refresh_views(pending_scores)
+        return "break"
+
+    def cancel_team_name_edit(self, _event=None):
+        if self.team_name_editor is not None:
+            _team_id, _league_id, editor = self.team_name_editor
+            self.team_name_editor = None
+            editor.destroy()
+        return "break"
 
     def change_round(self, offset):
         if not self.round_numbers:

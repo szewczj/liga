@@ -211,6 +211,22 @@ class SQLiteLeagueRepository:
             (league_id,),
         ).fetchall()
 
+    def rename_team(self, league_id, team_id, name):
+        try:
+            with self.connection:
+                cursor = self.connection.execute(
+                    "UPDATE app_teams SET name = ? WHERE id = ? AND league_id = ?",
+                    (name, team_id, league_id),
+                )
+                if cursor.rowcount != 1:
+                    raise ValueError("Nie znaleziono drużyny w tej lidze.")
+        except sqlite3.IntegrityError as error:
+            if "app_teams.league_id, app_teams.name" in str(error):
+                raise ValueError(
+                    "Drużyna o takiej nazwie już istnieje w tej lidze."
+                ) from error
+            raise
+
     def get_matches(self, league_id):
         return self.connection.execute(MATCH_QUERY, (league_id,)).fetchall()
 

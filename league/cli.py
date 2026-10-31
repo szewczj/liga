@@ -111,19 +111,20 @@ class ConsoleLeagueApp:
     def print_standings(self, league_id):
         print("\nTabela ligowa")
         print(
-            "{:<4} {:<24} {:>7} {:>8} {:>8} {:>8}".format(
-                "Lp.", "Drużyna", "Mecze", "Punkty", "Bramki+", "Bramki-"
+            "{:<4} {:<24} {:>7} {:>8} {:>8} {:>8} {:>8}".format(
+                "Lp.", "Drużyna", "Mecze", "Punkty", "Bramki+", "Bramki-", "RB"
             )
         )
         for position, team in enumerate(self.service.get_standings(league_id), 1):
             print(
-                "{:<4} {:<24} {:>7} {:>8} {:>8} {:>8}".format(
+                "{:<4} {:<24} {:>7} {:>8} {:>8} {:>8} {:>8}".format(
                     position,
                     team["name"][:24],
                     team["played"],
                     team["points"],
                     team["goals_for"],
                     team["goals_against"],
+                    team["goal_difference"],
                 )
             )
 
@@ -206,6 +207,7 @@ class ConsoleLeagueApp:
             print("1. Zmień nazwę ligi")
             print("2. Sklonuj ligę")
             print("3. Usuń ligę")
+            print("4. Zmień nazwę drużyny")
             print("0. Powrót")
             choice = input("Wybierz opcję: ").strip()
             if choice == "1":
@@ -244,6 +246,28 @@ class ConsoleLeagueApp:
                     continue
                 print("Liga została usunięta.")
                 return True
+            elif choice == "4":
+                teams = self.service.get_teams(league["id"])
+                for index, team in enumerate(teams, 1):
+                    print("{}. {}".format(index, team["name"]))
+                if not teams:
+                    print("Liga nie zawiera drużyn.")
+                    continue
+                team_number = ask_integer(
+                    "Wybierz drużynę (0 - powrót): ", 0, len(teams)
+                )
+                if not team_number:
+                    continue
+                team = teams[team_number - 1]
+                name = input(
+                    "Podaj nową nazwę drużyny [{}]: ".format(team["name"])
+                )
+                try:
+                    self.service.rename_team(league["id"], team["id"], name)
+                except ValueError as error:
+                    print(error)
+                else:
+                    print("Nazwa drużyny została zmieniona.")
             elif choice == "0":
                 return False
             else:
